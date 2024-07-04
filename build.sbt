@@ -26,7 +26,8 @@ val commonSettings = Seq(
     "dev.zio" %%% "zio-streams" % zioVersion,
     "dev.zio" %%% "zio-test"          % zioVersion % Test,
     "dev.zio" %%% "zio-test-sbt"      % zioVersion % Test,
-    "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test
+    "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test,
+    "io.github.jypma" %%% "lazagna-core" % "0.9.1"
   ))
 
 lazy val data = crossProject(JSPlatform, JVMPlatform).in(file("draw-data"))
@@ -66,7 +67,6 @@ lazy val client = project.in(file("draw-client"))
       "org.scala-js" %%% "scalajs-dom" % "2.4.0",
       "io.github.cquiroz" %%% "scala-java-time" % javaTimeVersion,
       "io.github.cquiroz" %%% "scala-java-time-tzdb" % javaTimeVersion,
-      "io.github.jypma" %%% "lazagna-core" % "0.9.0"
     ),
   )
 

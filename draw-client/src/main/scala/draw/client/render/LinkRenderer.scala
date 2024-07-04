@@ -12,7 +12,7 @@ import zio.{Promise, ZIO}
 
 import draw.client.Drawing
 import draw.data.{LinkState, ObjectState}
-import draw.geom.{Point, Rectangle}
+import zio.lazagna.geom.{Point, Rectangle}
 
 object LinkRenderer {
   private val margin = 4

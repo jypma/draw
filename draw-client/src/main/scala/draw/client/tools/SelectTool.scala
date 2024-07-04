@@ -17,7 +17,7 @@ import draw.client.Drawing
 import draw.client.render.RenderState
 import draw.data.drawcommand.{DeleteObject, DrawCommand, EditLink, LabelObject, MoveObject}
 import draw.data.{IconState, LinkState, Moveable, ObjectState, SymbolRef}
-import draw.geom.Point
+import zio.lazagna.geom.Point
 import org.scalajs.dom
 
 import IconState.mediumSize

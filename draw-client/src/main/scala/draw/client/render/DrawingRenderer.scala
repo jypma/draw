@@ -14,7 +14,7 @@ import zio.{ZIO, ZLayer, durationInt}
 import draw.client.Drawing
 import draw.client.tools.DrawingTools
 import draw.data.{IconState, LinkState, ScribbleState}
-import draw.geom.Point
+import zio.lazagna.geom.Point
 import org.scalajs.dom
 
 import Drawing._
