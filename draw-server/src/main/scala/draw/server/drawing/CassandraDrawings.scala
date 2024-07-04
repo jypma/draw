@@ -28,7 +28,7 @@ object CassandraDrawings {
       ).mapError(toError).provide(layer)
 
       def nextDrawing(after: UUID): IO[DrawingError, Option[UUID]] = ZCqlSession.executeHeadOption(
-        "SELECT drawingId FROM drawingEvents WHERE drawingId > ? AND sequenceNr = 0 LIMIT 1 ALLOW FILTERING"
+        "SELECT drawingId FROM drawingEvents WHERE drawingId > ? AND sequenceNr = 1 LIMIT 1 ALLOW FILTERING"
           .toStatement
           .bind(after)
           .decodeAttempt(_.getUuid("drawingId"))
@@ -48,19 +48,31 @@ object CassandraDrawings {
     knownDrawings <- Ref.make[Set[UUID]](initialDrawings.toSet)
     activeDrawings <- Ref.Synchronized.make[Map[UUID, (Scope, Drawing)]](Map.empty)
   } yield new Drawings {
-    def list = ZStream.unwrap(knownDrawings.get.map(ZStream.fromIterable(_).map { id =>
+    override def list = ZStream.unwrap(knownDrawings.get.map(ZStream.fromIterable(_).map { id =>
       Drawings.DrawingRef(id, id.toString)
     }))
 
-    def getDrawing(id: UUID) = activeDrawings.updateSomeAndGetZIO {
-      case m if !m.contains(id) => for {
-        subScope <- mainScope.fork
-        drawing <- makeDrawing(id)
-        _ <- AutoLayouter.make(drawing).provide(ZLayer.succeed(subScope))
-      } yield m + (id -> (subScope, drawing))
-    }.map(_(id)._2)
+    override def getDrawing(id: UUID) = {
+      ZIO.whenZIO(knownDrawings.get.map(!_.contains(id)))(ZIO.fail(DrawingError("Drawing not found: " + id))) *> activateDrawing(id)
+    }
 
-    private def makeDrawing(id: UUID): IO[DrawingError, Drawing] = for {
+    override def makeDrawing = {
+      val id = UUID.randomUUID
+      activateDrawing(id).as(id)
+    }
+
+    private def activateDrawing(id: UUID) = {
+      activeDrawings.updateSomeAndGetZIO {
+        case m if !m.contains(id) =>
+          for {
+            subScope <- mainScope.fork
+            drawing <- initDrawing(id)
+            _ <- AutoLayouter.make(drawing).provide(ZLayer.succeed(subScope))
+          } yield m + (id -> (subScope, drawing))
+      }.map(_(id)._2)
+    }
+
+    private def initDrawing(id: UUID): IO[DrawingError, Drawing] = for {
       startState <- currentDrawingEventsAfter(id, 0).runFold(DrawingState())((s,e) => s.update(e)._2)
       state <- Ref.make(startState)
       semaphore <- Semaphore.make(1)

@@ -4,7 +4,8 @@ import draw.data.drawcommand.{ContinueScribble, CreateIcon, DeleteObject, DrawCo
 import draw.data.drawevent.DrawEvent
 import draw.data.drawevent.ScribbleStarted
 import draw.data.drawevent.IconCreated
-import draw.geom.Point
+import zio.lazagna.geom.Point
+import draw.data.fromProtobuf
 import draw.data.drawevent.ScribbleContinued
 import draw.data.drawevent.ObjectMoved
 import draw.data.drawevent.ObjectLabelled
@@ -74,10 +75,10 @@ case class DrawingState(
 
     event.body match {
       case ScribbleStarted(id, points, _) =>
-        create(id, ScribbleState(Point(0,0), points.map(Point.fromProtobuf)))
+        create(id, ScribbleState(Point(0,0), points.map(fromProtobuf)))
       case IconCreated(id, optPos, category, name, width, height, _) =>
         create(id, IconState(
-          optPos.map(Point.fromProtobuf).getOrElse(Point(0,0)),
+          optPos.map(fromProtobuf).getOrElse(Point(0,0)),
           category.zip(name).map((c,n) => SymbolRef(SymbolCategory(c), n)).getOrElse(SymbolRef.person), "",
         ).withBounds(width, height))
       case LinkCreated(id, src, dest, preferredDistance, preferredAngle, _) =>

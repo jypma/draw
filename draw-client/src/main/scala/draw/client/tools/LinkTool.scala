@@ -14,7 +14,7 @@ import draw.client.Drawing
 import draw.client.render.{DrawingRenderer, RenderState, RenderedObject}
 import draw.data.drawcommand.{CreateLink, DrawCommand}
 import draw.data.{IconState, ObjectState}
-import draw.geom.Point
+import zio.lazagna.geom.Point
 import org.scalajs.dom
 
 import DrawingRenderer.{ObjectTarget}

@@ -1,15 +1,16 @@
 package draw.data
 
 import draw.data.drawevent.DrawEventBody
-import draw.geom.Point
+import zio.lazagna.geom.Point
 import draw.data.drawevent.DrawEvent
 import draw.data.drawevent.ObjectDeleted
 import draw.data.drawevent.ScribbleContinued
 import draw.data.drawevent.ObjectMoved
 import draw.data.drawevent.ObjectLabelled
-import draw.geom.Bounds
-import draw.geom.Rectangle
+import zio.lazagna.geom.Bounds
+import zio.lazagna.geom.Rectangle
 import draw.data.drawevent.LinkEdited
+import draw.data.fromProtobuf
 
 sealed trait ObjectStateBody {
   def update(event: DrawEventBody) = this
@@ -36,7 +37,7 @@ case class ObjectState[T <: ObjectStateBody](id: String, sequenceNr: Long, delet
 case class ScribbleState(position: Point, points: Seq[Point]) extends ObjectStateBody with Moveable {
   override def update(event: DrawEventBody) = event match {
     case ScribbleContinued(_, addedPoints, _) =>
-      copy(points = points ++ addedPoints.map(Point.fromProtobuf))
+      copy(points = points ++ addedPoints.map(fromProtobuf))
     case ObjectMoved(_, Some(newPosition), _) =>
       copy(position = newPosition)
     case _ => this

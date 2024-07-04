@@ -6,7 +6,7 @@ import zio.stream.{SubscriptionRef, ZStream}
 import zio.{Hub, Semaphore, UIO, ZIO, ZLayer}
 
 import draw.data.ObjectState
-import draw.geom.Rectangle
+import zio.lazagna.geom.Rectangle
 import org.scalajs.dom
 
 case class RenderedObject(state: ObjectState[_], element: dom.Element) {
