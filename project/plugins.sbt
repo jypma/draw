@@ -9,3 +9,5 @@ libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.11.11"
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0")
 
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.10.0")
+
+addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.10.0")

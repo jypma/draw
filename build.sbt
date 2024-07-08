@@ -74,6 +74,8 @@ val log4jVersion = "2.23.0"
 val zioConfigVersion = "4.0.2"
 lazy val server = project.in(file("draw-server"))
   .settings(commonSettings)
+  .enablePlugins(JavaAppPackaging)
+  .enablePlugins(DockerPlugin)
   .dependsOn(data.jvm)
   .settings(
     resolvers += "Sonatype OSS Snapshots" at "https://s01.oss.sonatype.org/content/repositories/snapshots",
@@ -82,6 +84,7 @@ lazy val server = project.in(file("draw-server"))
     Compile / unmanagedResourceDirectories += client.base.toPath().normalize().toAbsolutePath().resolve("dist").toFile(),
     // Always copy the above resources when starting the server in dev mode
     (Compile / reStart) := ((Compile / reStart) dependsOn (Compile / copyResources)).evaluated,
+
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio-http" % "3.0.0-RC6",
 
@@ -96,4 +99,7 @@ lazy val server = project.in(file("draw-server"))
       "dev.zio" %% "zio-config-yaml"     % zioConfigVersion,
       "dev.zio" %% "zio-config-refined"  % zioConfigVersion
     ),
+    dockerBaseImage := "eclipse-temurin:21.0.3_9-jdk",
+    dockerExposedPorts ++= Seq(8080, 8443),
+    Docker / packageName := "jypmadoc/draw"
   )

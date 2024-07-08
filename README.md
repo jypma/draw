@@ -59,6 +59,67 @@ npm run dev
 
 The latter will open the example at `http://localhost:5173/`, which you can open in your web browser. Multiple users (web browsers) can edit the drawing simultaneously.
 
+# Building the docker container
+
+You can set up the server to serve both client and API from a docker container (you'll still need cassandra as well). In order to build the docker container, run `docker-publish-local.sh`.
+
+From there, you can also push the resulting container to a registry using normal `docker` commands. If you want to use `docker-compose`, use the following as starting point:
+
+```yaml
+services:
+  cassandra:
+      image: cassandra:4.1.4
+      ports:
+        - "9042:9042"
+      environment:
+        - "MAX_HEAP_SIZE=256M"
+        - "HEAP_NEWSIZE=128M"
+      restart: always
+      volumes:
+        - ./cassandra_data:/var/lib/cassandra
+      healthcheck:
+        test: ["CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces"]
+        interval: 15s
+        timeout: 10s
+        retries: 10
+
+  cassandra-load-keyspace:
+      image: cassandra:4.1.4
+      depends_on:
+        cassandra:
+          condition: service_healthy
+      volumes:
+        - ./schema.cql:/schema.cql
+      command: /bin/bash -c "echo loading cassandra keyspace && cqlsh cassandra -f /schema.cql"
+
+  draw:
+    image: jypmadoc/draw:0.1.0-SNAPSHOT
+    ports:
+      - "8080:8080"
+      - "443:8443"
+    depends_on:
+      cassandra-load-keyspace:
+        condition: service_completed_successfully
+    volumes:
+      - ./config.yaml:/opt/docker/config.yaml
+```
+
+The `schema.cql` file is available under `draw-server/src/main/resources`, and `config.yaml` you've created already. However, you need an additional entry in `config.yaml` when running in docker:
+
+```yaml
+github:
+  clientId: MY-CLIENT-ID
+  secret: MY-SECRET
+cassandra:
+  hostname: cassandra
+http:
+  cookieDomain: my.domain.example.net
+```
+
+This makes sure that the `draw` server finds Cassandra as `cassandra` (which is the name of the cassandra service under docker-compose). The Cassandra hostname defaults to `localhost` otherwise.
+
+Also set the cookie domain to the actual domain you'll be serving the application from.
+
 # Icons
 
 Source: https://github.com/leungwensen/svg-icon

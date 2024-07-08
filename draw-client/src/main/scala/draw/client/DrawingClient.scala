@@ -61,16 +61,27 @@ object DrawingClient {
     def baseWs = s"${ws}://${server}:${port}${path}"
   }
 
+  object Config {
+    //TEST: Check that constructor works with and without port
+    def fromLocation = Config(
+      dom.window.location.hostname,
+      dom.window.location.port match {
+        case "" => if (dom.window.location.protocol == "https:") 443 else 80
+        case p => p.toInt
+      },
+      dom.window.location.protocol == "https:",
+      ""
+    )
+
+    val live = ZLayer.succeed(fromLocation)
+  }
+
   def merge(a: DrawEvent, b: DrawEvent) = (a.body, b.body) match {
     case (ObjectMoved(id1, _, _), ObjectMoved(id2, Some(_), _)) if id1 == id2 =>
       Some(b)
     case (ScribbleContinued(id1, points1, _), ScribbleContinued(id2, points2, _)) if id1 == id2 =>
       Some(b.copy(body = ScribbleContinued(id2, points1 ++ points2)))
     case _ => None
-  }
-
-  val configTest = ZLayer.succeed {
-    Config(dom.window.location.hostname, dom.window.location.port.toInt, dom.window.location.protocol == "https:", "")
   }
 
   val live = ZLayer.fromZIO {

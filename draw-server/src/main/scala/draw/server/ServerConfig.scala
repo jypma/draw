@@ -22,7 +22,11 @@ case class GithubConfig(
   ttl: Duration = Duration.of(7, ChronoUnit.DAYS)
 )
 
-case class ServerConfig(cassandra: CassandraConfig, github: GithubConfig)
+case class HttpConfig(
+  cookieDomain: String = "localhost"
+)
+
+case class ServerConfig(cassandra: CassandraConfig, github: GithubConfig, http: HttpConfig)
 
 object ServerConfig {
   val config = deriveConfig[ServerConfig]

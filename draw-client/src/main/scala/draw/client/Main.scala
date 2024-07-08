@@ -40,11 +40,14 @@ object Main extends ZIOAppDefault {
   def run(effect: ZIO[DrawingViewer & DrawingList & LoginHandler & Setup & Scope, Any, Any]) = Setup.start {
     effect.catchAllCause(handleError).provideSome[Scope & Setup](
       DrawingClient.live,
-      DrawingClient.configTest,
+      DrawingClient.Config.live,
       DrawingList.live,
       DrawingViewer.live,
       LoginHandler.live
     )
+  }.catchAllCause { cause =>
+    dom.console.log(cause.prettyPrint)
+    ZIO.unit
   }
 
   val routes = {

@@ -146,7 +146,7 @@ object DrawServer extends ZIOAppDefault {
         user <- users.activateGithub(sessionId, code)
       } yield Response(body = Body.from(user)).addCookie(Cookie.Response("sessionId", sessionId.toString,
         isSecure = true, isHttpOnly = true, maxAge = Some(config.github.ttl), sameSite = Some(Cookie.SameSite.Strict),
-        path = Some(Path("/")), domain = Some("localhost")
+        path = Some(Path("/")), domain = Some(config.http.cookieDomain)
       ))
     },
     Method.GET / "user" -> requireUser -> handler { (user: User, request: Request) =>
