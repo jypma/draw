@@ -76,8 +76,11 @@ text.label {
 
 .tool-select path.selectTarget:hover {
     stroke: rgba(var(--fg-color-highlight));
-    marker-end: url(#arrow);
     opacity: 0.4;
+}
+
+.tool-select g.link path:hover {
+    marker-end: url(#arrow);
 }
 
 .tool-select g.selected path.editTarget {
@@ -87,7 +90,6 @@ text.label {
 
 .tool-select g.selected path.selectTarget:hover {
     stroke: rgba(var(--fg-color-highlight));
-    marker-end: url(#arrow);
     opacity: 0.5;
 }
 
