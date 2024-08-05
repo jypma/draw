@@ -51,7 +51,7 @@ object DrawServer extends ZIOAppDefault {
               channel.send(Read(WebSocketFrame.Pong))
             case Read(WebSocketFrame.Binary(commandBytes)) =>
               val command = DrawCommand.parseFrom(commandBytes.toArray)
-              drawing.perform(command).mapError { e =>
+              drawing.perform(userId, command).mapError { e =>
                 println(e.toString)
                 // TODO: Find out why WebSocket is modeled to only allow Throwable as error
                 IllegalStateException(e.toString)
@@ -154,7 +154,7 @@ object DrawServer extends ZIOAppDefault {
     },
     Method.POST / "drawings" -> requireUser -> Handler.fromFunctionZIO[(User, Request)] { (user, request) =>
       for {
-        id <- drawings.makeDrawing
+        id <- drawings.makeDrawing(user.id)
       } yield Response.status(Status.NoContent).addHeader(Location(URL(Path(id.toString))))
     },
     Method.HEAD / "drawings" / uuid("drawing") -> requireUser -> Handler.fromFunctionZIO[(UUID, User, Request)] { (drawing, user, request) =>

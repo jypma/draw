@@ -18,13 +18,18 @@ import draw.data.drawevent.LinkEdited
 import java.time.Instant
 import draw.data.drawcommand.CreateLink
 import draw.data.drawcommand.LayoutObjects
+import java.util.UUID
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import com.google.protobuf.ByteString
 
 
 case class DrawingState(
   lastSequenceNr: Long = 0,
   objects: Map[String, ObjectState[_]] = Map.empty,
   /* Key is object ID, value is link ID */
-  objectLinks: DrawingState.Links = Map.empty
+  objectLinks: DrawingState.Links = Map.empty,
+  lastUser: UUID = null
 ) {
   import DrawingState._
 
@@ -32,13 +37,14 @@ case class DrawingState(
 
   private def alive = objects.view.filter(!_._2.deleted)
 
-  private def set(state: ObjectState[_], isNew: Boolean, newLinks: Links, extraUpdates: Iterable[(String, ObjectState[_])] = Nil) = (
+  private def set(state: ObjectState[_], isNew: Boolean, newLinks: Links, user: UUID, extraUpdates: Iterable[(String, ObjectState[_])] = Nil) = (
     (Seq(state), isNew),
     copy(
       // TEST: Deletes objects stick around in state (so we know they've been deleted asynchronously). It's OK, they won't be in pruned event storage.
       objects = objects + (state.id -> state) ++ extraUpdates,
       lastSequenceNr = state.sequenceNr,
-      objectLinks = newLinks
+      objectLinks = newLinks,
+      lastUser = user
     )
   )
 
@@ -52,7 +58,7 @@ case class DrawingState(
       val linkIds = newLinks.getOrElse(id, Set.empty)
       val updatedLinks = linkIds.map { linkId => linkId -> objects(linkId).update(event, depId =>
         if (depId == id) newState.body.asInstanceOf[Moveable] else getMoveable(depId)) }
-      set(newState, false, newLinks, updatedLinks)
+      set(newState, false, newLinks, userId(event), updatedLinks)
     }.getOrElse(unaffected(event))
   }
 
@@ -71,7 +77,7 @@ case class DrawingState(
   /** Returns the new drawing state, new object state(s), and whether those objects are new */
   def update(event: DrawEvent): ((Seq[ObjectState[_]], Boolean), DrawingState) = {
     def create(id: String, body: ObjectStateBody, newLinks: Links = objectLinks) =
-      set(ObjectState(id, event.sequenceNr, false, body), true, newLinks)
+      set(ObjectState(id, event.sequenceNr, false, body), true, newLinks, userId(event))
 
     event.body match {
       case ScribbleStarted(id, points, _) =>
@@ -110,8 +116,8 @@ case class DrawingState(
   }
 
   /** Returns which events to emit when handling the given command. */
-  def handle(now: Instant, command: DrawCommand): Seq[DrawEvent] = {
-    def emit(body: DrawEventBody) = this.emit(now, Seq(body))
+  def handle(now: Instant, user: UUID, command: DrawCommand): Seq[DrawEvent] = {
+    def emit(body: DrawEventBody) = this.emit(now, user, Seq(body))
 
     command.body match {
       case StartScribble(id, points, _) =>
@@ -123,7 +129,7 @@ case class DrawingState(
         // TODO: Verify scribble OR icon exists
         // TEST: Verify links are deleted with object (and emitted events have different sequence numbers)
         val deleteLinks = objectLinks.getOrElse(id, Set.empty).map(ObjectDeleted(_)).toSeq
-        this.emit(now, deleteLinks :+ ObjectDeleted(id))
+        this.emit(now, user, deleteLinks :+ ObjectDeleted(id))
       case MoveObject(id, Some(position), _) =>
         // TODO: Verify scribble OR icon exists
         emit(ObjectMoved(id, Some(position)))
@@ -172,10 +178,10 @@ case class DrawingState(
   def exists: Boolean = lastSequenceNr > 0
 
   /** Returns the events to emit in case this drawing is completely new (doesn't exist) */
-  def handleCreate(now: Instant): Seq[DrawEvent] = emit(now, Seq(DrawingCreated()))
+  def handleCreate(now: Instant, user: UUID): Seq[DrawEvent] = emit(now, user, Seq(DrawingCreated()))
 
-  private def emit(now: Instant, bodies: Seq[DrawEventBody]) = bodies.zipWithIndex.map { (body, idx) =>
-    DrawEvent(lastSequenceNr + 1 + idx, body, Some(now.toEpochMilli()))
+  private def emit(now: Instant, user: UUID, bodies: Seq[DrawEventBody]) = bodies.zipWithIndex.map { (body, idx) =>
+    DrawEvent(lastSequenceNr + 1 + idx, body, Some(now.toEpochMilli()), Some(ByteString.copyFrom(toBytes(user))))
   }
 
   def links: Iterable[ObjectState[LinkState]] = objects.values.filter(_.body.isInstanceOf[LinkState]).asInstanceOf[Iterable[ObjectState[LinkState]]]
@@ -190,5 +196,25 @@ object DrawingState {
 
     def remove(key: String, value: String) =
       links.updated(key, links.getOrElse(key, Set.empty) - value)
+  }
+
+  def toBytes(uuid: UUID): Array[Byte] = {
+    val bb = ByteBuffer.wrap(new Array[Byte](16))
+    bb.order(ByteOrder.BIG_ENDIAN)
+    bb.putLong(uuid.getMostSignificantBits())
+    bb.putLong(uuid.getLeastSignificantBits())
+    bb.array()
+  }
+
+  def fromBytes(bytes: Array[Byte]): UUID = {
+    val bb = ByteBuffer.wrap(bytes)
+    bb.order(ByteOrder.BIG_ENDIAN)
+    val high = bb.getLong()
+    val low = bb.getLong()
+    new UUID(high, low)
+  }
+
+  def userId(event: DrawEvent): UUID = {
+    event.userId.map(_.toByteArray()).map(fromBytes).getOrElse(null)
   }
 }

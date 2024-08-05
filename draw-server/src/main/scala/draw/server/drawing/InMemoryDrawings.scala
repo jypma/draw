@@ -17,13 +17,13 @@ import Drawings.DrawingError
 case class DrawingStorage(state: DrawingState = DrawingState(), events: Seq[DrawEvent] = Seq.empty) {
   def size = events.size
 
-  def handle(now: Instant, command: DrawCommand): (Seq[DrawEvent], DrawingStorage) = {
-    val emitted = state.handle(now, command)
+  def handle(now: Instant, user: UUID, command: DrawCommand): (Seq[DrawEvent], DrawingStorage) = {
+    val emitted = state.handle(now, user, command)
     (emitted, doHandle(emitted))
   }
 
-  def handleCreate(now: Instant) = {
-    doHandle(state.handleCreate(now))
+  def handleCreate(now: Instant, user: UUID) = {
+    doHandle(state.handleCreate(now, user))
   }
 
   private def doHandle(emitted: Seq[DrawEvent]) = copy(
@@ -35,11 +35,11 @@ case class DrawingStorage(state: DrawingState = DrawingState(), events: Seq[Draw
 case class DrawingInMemory(storage: SubscriptionRef[DrawingStorage]) extends Drawing {
   override def getState = storage.get.map(_.state)
 
-  override def perform(command: DrawCommand): ZIO[Any, DrawingError, Unit] = {
+  override def perform(user: UUID, command: DrawCommand): ZIO[Any, DrawingError, Unit] = {
     for {
       now <- Clock.instant
       _ <- storage.get.filterOrFail(_.size < 10000)(DrawingError("Too many events"))
-      _ <- storage.modify(_.handle(now, command))
+      _ <- storage.modify(_.handle(now, user, command))
     } yield ()
   }
 
@@ -73,13 +73,13 @@ case class InMemoryDrawings(storage: Ref.Synchronized[Map[UUID,Drawing]]) extend
     Drawings.DrawingRef(id, id.toString)
   })))
 
-  override def makeDrawing = {
+  override def makeDrawing(user: UUID) = {
     val id = UUID.randomUUID()
     storage.updateZIO { map =>
       for {
         drawStorage <- SubscriptionRef.make(DrawingStorage())
         now <- Clock.instant
-        _ <- drawStorage.update(_.handleCreate(now))
+        _ <- drawStorage.update(_.handleCreate(now, user))
         drawing = DrawingInMemory(drawStorage)
       } yield map + (id -> drawing)
     }.as(id)

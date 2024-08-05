@@ -1,7 +1,6 @@
 package draw.server.drawing
 
 import java.nio.ByteBuffer
-import java.time.Instant
 import java.util.UUID
 
 import zio.stream.ZStream
@@ -53,44 +52,44 @@ object CassandraDrawings {
     }))
 
     override def getDrawing(id: UUID) = {
-      ZIO.whenZIO(knownDrawings.get.map(!_.contains(id)))(ZIO.fail(DrawingError("Drawing not found: " + id))) *> activateDrawing(id)
+      ZIO.whenZIO(knownDrawings.get.map(!_.contains(id)))(ZIO.fail(DrawingError("Drawing not found: " + id))) *> activateDrawing(id, null /* unused on existing drawing */)
     }
 
-    override def makeDrawing = {
+    override def makeDrawing(user: UUID) = {
       val id = UUID.randomUUID
-      activateDrawing(id).as(id)
+      activateDrawing(user, id).as(id)
     }
 
-    private def activateDrawing(id: UUID) = {
+    private def activateDrawing(id: UUID, user: UUID) = {
       activeDrawings.updateSomeAndGetZIO {
         case m if !m.contains(id) =>
           for {
             subScope <- mainScope.fork
-            drawing <- initDrawing(id)
+            drawing <- initDrawing(id, user)
             _ <- AutoLayouter.make(drawing).provide(ZLayer.succeed(subScope))
           } yield m + (id -> (subScope, drawing))
       }.map(_(id)._2)
     }
 
-    private def initDrawing(id: UUID): IO[DrawingError, Drawing] = for {
+    private def initDrawing(id: UUID, user: UUID): IO[DrawingError, Drawing] = for {
       startState <- currentDrawingEventsAfter(id, 0).runFold(DrawingState())((s,e) => s.update(e)._2)
       state <- Ref.make(startState)
       semaphore <- Semaphore.make(1)
       hub <- Hub.unbounded[DrawEvent]
       emit = (event: DrawEvent) => storeEvent(id, event) *> state.update(_.update(event)._2)
       _ <- if (startState.exists) ZIO.unit else for {
-        events <- Clock.instant.map(startState.handleCreate)
+        events <- Clock.instant.map(now => startState.handleCreate(now, user))
         _ <- ZIO.collectAll(events.map(emit(_)))
       } yield ()
       _ <- knownDrawings.update(_ + id)
     } yield new Drawing {
       override def getState = state.get
 
-      override def perform(command: DrawCommand): ZIO[Any, DrawingError, Unit] = {
+      override def perform(user: UUID, command: DrawCommand): ZIO[Any, DrawingError, Unit] = {
         semaphore.withPermit {
           for {
             now <- Clock.instant
-            events <- state.get.map(_.handle(now, command))
+            events <- state.get.map(_.handle(now, user, command))
             _ <- ZIO.collectAll(events.map { event =>
               emit(event) *> hub.publish(event)
             })

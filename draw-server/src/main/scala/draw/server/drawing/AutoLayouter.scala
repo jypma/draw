@@ -32,7 +32,7 @@ object AutoLayouter {
       _ = println("Starting autolayout.")
       toMove <- autoLayout.performLayout(drawState)
       _ = println("Autolayout complete: " + toMove)
-      _ <- drawing.perform(DrawCommand(LayoutObjects(toMove))).when(!toMove.isEmpty).catchAll {
+      _ <- drawing.perform(drawState.lastUser, DrawCommand(LayoutObjects(toMove))).when(!toMove.isEmpty).catchAll {
         case err: DrawingError =>
           println("Can't perform autolayout: " + err)
           ZIO.unit

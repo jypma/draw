@@ -13,7 +13,7 @@ import draw.data.drawevent.DrawEvent
 import Drawings.DrawingError
 
 trait Drawing {
-  def perform(command: DrawCommand): ZIO[Any, DrawingError, Unit]
+  def perform(user: UUID, command: DrawCommand): ZIO[Any, DrawingError, Unit]
   def events: ZStream[Any, DrawingError, DrawEvent]
   def eventsAfter(sequenceNr: Long): ZStream[Any, DrawingError, DrawEvent]
   def version: ZIO[Any, DrawingError, Long]
@@ -22,7 +22,7 @@ trait Drawing {
 
 trait Drawings {
   def getDrawing(id: UUID): IO[DrawingError, Drawing]
-  def makeDrawing: IO[DrawingError, UUID]
+  def makeDrawing(user: UUID): IO[DrawingError, UUID]
   def list: ZStream[Any, DrawingError, Drawings.DrawingRef]
 }
 
