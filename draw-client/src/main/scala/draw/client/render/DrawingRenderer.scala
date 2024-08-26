@@ -24,6 +24,9 @@ trait DrawingRenderer {
 }
 
 object DrawingRenderer {
+  private val hueCount = 11
+  val hues = (0 until hueCount).map(h => (h * 360.0 / hueCount).toInt).map(Hue.find)
+
   case class ObjectTarget(id: String, position: Point)
   object ObjectTarget {
     def apply(target: dom.Element): Option[ObjectTarget] = {
@@ -74,7 +77,28 @@ object DrawingRenderer {
                   stroke := "none",
                   fill := "context-stroke"
                 )
-              )
+              ),
+              hues.map { hue =>
+                Modifier.all(
+                  filterTag(
+                    id := s"bright_${hue.degrees}",
+                    feColorMatrix(values := "-1 0 0 1 0   0 -1 0 1 0   0 0 -1 1 0  -0.21 -0.72 -0.07 2 0", result := "fbSourceGraphic") /* invert source */,
+                    //feColorMatrix(values := "1 0 0 1 0   0 1 0 1 0   0 0 1 1 0   0 0 0 1 0", result := "fbSourceGraphic"),
+                    feFlood(floodColor := s"hsl(${hue.degrees},var(--bright-saturation),var(--bright-lightness))", floodOpacity := 1, in := "fbSourceGraphic", result := "flood1"), /* flood with target color */
+                    feBlend(in := "flood1", in2 := "fbSourceGraphic", mode := "multiply", result := "blend1"), /* multiply with original */
+                    feComposite(in := "blend1", in2 := "fbSourceGraphic", operator := "in") /* crop to original alpha */
+                  ),
+                  filterTag(
+                    id := s"dark_${hue.degrees}",
+                    feColorMatrix(values := "-1 0 0 1 0   0 -1 0 1 0   0 0 -1 1 0  -0.21 -0.72 -0.07 2 0", result := "fbSourceGraphic") /* invert source */,
+                    //feColorMatrix(values := "1 0 0 1 0   0 1 0 1 0   0 0 1 1 0   0 0 0 1 0", result := "fbSourceGraphic"),
+                    feFlood(floodColor := s"hsl(${hue.degrees},var(--dark-saturation),var(--dark-lightness))", floodOpacity := 1, in := "fbSourceGraphic", result := "flood1"), /* flood with target color */
+                    feBlend(in := "flood1", in2 := "fbSourceGraphic", mode := "multiply", result := "blend1"), /* multiply with original */
+                    feComposite(in := "blend1", in2 := "fbSourceGraphic", operator := "in") /* crop to original alpha */
+                  )
+
+                )
+              }
             ),
             SVGHelper { helper =>
               val deps = ZLayer.succeed(renderState) ++ ZLayer.succeed(helper) ++ ZLayer.succeed(drawing)

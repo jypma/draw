@@ -6,20 +6,18 @@ import zio.lazagna.Consumeable
 import zio.lazagna.Consumeable.given
 import zio.lazagna.dom.Attribute._
 import zio.lazagna.dom.Element._
-import zio.lazagna.dom.Element.svgtags._
 import zio.lazagna.dom.Element.tags._
 import zio.lazagna.dom.Events._
 import zio.lazagna.dom.Modifier._
 import zio.lazagna.dom.svg.SVGHelper
 import zio.lazagna.dom.{Alternative, Children, Element, Modifier}
 import zio.stream.SubscriptionRef
-import zio.{Clock, Hub, Random, Ref, Scope, UIO, ZIO, ZLayer}
+import zio.{Clock, Random, Ref, Scope, UIO, ZIO, ZLayer}
 
 import draw.client.Drawing._
 import draw.client.render.RenderState
 import draw.client.{Drawing, SymbolIndex}
-import draw.data.SymbolRef
-import draw.data.drawcommand.{ContinueScribble, CreateIcon, DrawCommand, StartScribble}
+import draw.data.drawcommand.{ContinueScribble, DrawCommand, StartScribble}
 import draw.data.point.Point
 import org.scalajs.dom
 
@@ -79,7 +77,7 @@ object DrawingTools {
       dialogs <- ZIO.service[Children]
       index <- ZIO.service[SymbolIndex]
       keyboard <- Children.make
-      iconTool <- icon(drawing, dialogs, keyboard, index)
+      iconTool <- IconTool.make(drawing, dialogs, keyboard, index)
       selectTool <- SelectTool.make(drawing, dialogs, keyboard)
       linkTool <- LinkTool(drawing)
       tools = Seq(
@@ -228,89 +226,4 @@ object DrawingTools {
       )(_.flatMap(drawing.perform _))
     }
   } yield ()
-
-  private val iconSize = 64
-
-  private def icon(drawing: Drawing, dialogs: Children, keyboard: Children, index: SymbolIndex): UIO[Modifier[Unit]] = for {
-    searchResult <- Hub.bounded[SymbolIndex.Result](1)
-    selectedIcon <- SubscriptionRef.make(SymbolRef.person)
-    cursorPos <- SubscriptionRef.make[Option[dom.SVGPoint]](None)
-  } yield {
-    val selectDialog = dialogs.child { close =>
-      div(
-        cls := "dialog icon-dialog",
-        div(
-          div(
-            cls := "results",
-            Alternative.mountOne(searchResult) { s =>
-              s.symbols.map { symbol =>
-                svg(
-                  cls := "result",
-                  tabindex := 0,
-                  use(
-                    svgTitle(textContent := symbol.name),
-                    href := symbol.href,
-                    cls := "icon",
-                    width := 24,
-                    height := 24
-                  ),
-                  onClick.merge(onKeyDown(_.filter(_.key == "Enter")))(_.flatMap { _ =>
-                    selectedIcon.set(symbol) *> close
-                   })
-                    // TODO: "Enter" on the input itself switches focus to the first icon, and activates letter-overlay shortcuts for the first 36 matches.
-                )
-              }
-            }
-          ),
-          div(
-            input(typ := "text", placeholder := "Search icon...", list := "icon-dialog-list", focusNow,
-              onInput.asTargetValue(_.flatMap { text =>
-                index.lookup(text).flatMap(searchResult.publish)
-              })
-            ),
-            // No datalist for now. Has crazy high CPU usage if replacing values after input...
-            /*
-            datalist(id := "icon-dialog-list",
-              // Alternative.mountOne(searchResult.debounce(1.second)) { _.completions.map { s => option(value := s) } }
-              // index.completionList.flatMap(_.map(s => option(value := s)))
-             )
-             */
-          ),
-        ),
-        keyboard.child { _ =>
-          keyboardAction("Escape", "Close dialog", close)
-        }
-      )
-    }
-
-    SVGHelper { helper =>
-      Modifier.all(
-        onMouseMove(_.flatMap { e =>
-          cursorPos.set(Some(helper.screenToSvg(e)))
-        }),
-        keyboard.child { _ =>
-          keyboardAction("u", "Select icon", selectDialog)
-        },
-        onMouseDown(_
-          .filter(_.button == 0)
-          .flatMap { e =>
-            for {
-              symbol <- selectedIcon.get
-              id <- makeUUID
-              pos = helper.screenToSvg(e)
-              bounds = helper.svgBoundingBox(helper.svg.querySelector(".icon-preview").asInstanceOf[dom.SVGLocatable])
-              _ <- drawing.perform(DrawCommand(CreateIcon(id, Point(pos.x, pos.y), symbol.category.name, symbol.name, bounds.width, bounds.height)))
-            } yield {}
-          }),
-        use(
-          x <-- cursorPos.map(p => (p.map(_.x).getOrElse(-100000.0) - iconSize / 2).toString),
-          y <-- cursorPos.map(p => (p.map(_.y).getOrElse(-100000.0) - iconSize / 2).toString),
-          width := iconSize,
-          height := iconSize,
-          cls := "icon-preview",
-          href <-- selectedIcon.map(_.href),
-        )
-      )
-    }
-  }
 }

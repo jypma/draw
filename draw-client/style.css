@@ -93,15 +93,15 @@ text.label {
     opacity: 0.5;
 }
 
-.tool-select use.icon:hover, .tool-link use.icon:hover {
+.tool-select g.icon:hover, .tool-link g.icon:hover {
     filter: drop-shadow(0px 0px 10px rgba(var(--fg-color-highlight), 0.8));
 }
 
-.tool-select g.selected use.icon {
+.tool-select g.selected g.icon {
     filter: drop-shadow(0px 0px 10px rgba(var(--fg-color-selected), 0.7));
 }
 
-.tool-select g.selected use.icon:hover {
+.tool-select g.selected g.icon:hover {
     filter: drop-shadow(0px 0px 8px rgba(var(--fg-color-highlight), 1.0));
 }
 
@@ -201,7 +201,18 @@ svg.main {
     cursor: pointer;
 }
 
-.link-dialog {
+.icon-dialog .hue span {
+    padding-right: 0.5em;
+}
+
+.icon-dialog .hue label {
+    width: 2em;
+    height: 2em;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.kv-dialog {
     display: grid;
     grid-template-columns:  minmax(100px, auto) 1fr;
     justify-items: start;
@@ -240,6 +251,19 @@ svg.main {
 .link-dialog .direction-presets .preset {
     width: 2em;
     cursor: pointer;
+}
+
+.login-dialog .description {
+    font-style: italic;
+    border-bottom: 1px solid rgba(var(--fg-color-main));
+    margin-bottom: 1em;
+}
+
+.login-dialog .links {
+    text-align: left;
+    display: list-item;
+    margin-left: 1.3em;
+    list-style-type: circle;
 }
 
 .keyboard-hints {

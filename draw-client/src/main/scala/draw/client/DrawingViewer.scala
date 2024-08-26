@@ -71,6 +71,8 @@ object DrawingViewer {
       println(s"Logging in for drawing ${drawingId}")
       (for {
         writeLock <- ZLayer.fromZIO(Lock.makeAndLockExclusively(s"${drawingId}-writeLock")).memoize
+        // We don't use the user yet, but we get it as first request to make sure we are redirected to login if needed.
+        _ <- client.user
         drawing <- client.getDrawing(drawingId).provideSome[Scope & Setup](writeLock, database, eventStore)
         _ <- (for {
           renderer <- ZIO.service[DrawingRenderer]

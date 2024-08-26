@@ -6,6 +6,11 @@ html, svg {
     --fg-color-main: 0, 0, 0;
     --fg-color-highlight: 0, 255, 0;
     --fg-color-selected: 255, 255, 255;
+
+    --bright-saturation: 80%;
+    --bright-lightness: 50%;
+    --dark-saturation: 80%;
+    --dark-lightness: 20%;
 }
 
 text.label, div.label-input input {

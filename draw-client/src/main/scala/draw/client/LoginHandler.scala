@@ -23,16 +23,25 @@ object LoginHandler {
   } yield new LoginHandler {
     def render(links: Seq[(String, String)]) = {
       div(
-        cls := "links",
-        links.map { case (name, link) =>
+        cls := "dialog login-dialog",
+        div(
           div(
-            cls := "link",
-            a(
-              href := s"${link}&state=/",
-              textContent := name
-            )
+            cls := "description",
+            textContent := "You must log in in order to use this application. Please select from the available login providers."
+          ),
+          div(
+            cls := "links",
+            links.map { case (name, link) =>
+              div(
+                cls := "link",
+                a(
+                  href := s"${link}&state=/",
+                  textContent := name
+                )
+              )
+            }
           )
-        }
+        )
       ).mount(dom.document.querySelector("#app"))
     }
 

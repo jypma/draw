@@ -3,6 +3,13 @@ import "point.proto";
 
 package draw.data;
 
+enum BrightnessStyle {
+    black = 0;
+    dark = 1;
+    bright = 2;
+}
+
+
 message DrawEvent {
     required uint64 sequenceNr = 1;
     required DrawEventBody body = 2;
@@ -59,6 +66,8 @@ message IconCreated {
     optional string name = 4;
     optional double width = 5;
     optional double height = 6;
+    optional BrightnessStyle brightnessStyle = 7;
+    optional int32 hue = 8;
 }
 
 message ObjectLabelled {

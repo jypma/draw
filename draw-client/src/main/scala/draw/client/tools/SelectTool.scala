@@ -101,7 +101,7 @@ object SelectTool {
               typ := "text",
               placeholder := "Enter label...",
               focusNow,
-              value <-- drawing.objectState(target._1).map(_.body).collect { case IconState(_,_,label,_,_) => label },
+              value <-- drawing.objectState(target._1).map(_.body).collect { case IconState(_,_,label,_,_,_,_) => label },
               onInput.asTargetValue(_.flatMap { text =>
                 measureLabel.boundingBox(textContent := text).flatMap { box =>
                   drawing.perform(DrawCommand(LabelObject(target._1, text, box.width, box.height, box.origin.y)))
@@ -139,7 +139,7 @@ object SelectTool {
           div(
             cls := "dialog",
             div (
-              cls := "link-dialog",
+              cls := "link-dialog kv-dialog",
               div(textContent := "Length:"),
               div(
                 cls := "lengths",

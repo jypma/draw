@@ -92,7 +92,9 @@ object DrawServer extends ZIOAppDefault {
         )
         // TODO: Case class and schema for these
         loginJson = loginLinks.map { t => s"""{"name":"${t._1}","link":"${t._2}"}"""}.mkString(",")
-        unauthorized = (msg: String) => Response.json(s"""{"message":"$msg","login":[${loginJson}]}""").copy(status = Status.Unauthorized)
+        unauthorized = (msg: String) => {
+          if (request.method == Method.HEAD) Response.unauthorized else Response.json(s"""{"message":"$msg","login":[${loginJson}]}""").copy(status = Status.Unauthorized)
+        }
         sessionId <- ZIO.fromOption(request.cookie("sessionId").flatMap(c => Try(UUID.fromString(c.content)).toOption))
           .orElseFail(unauthorized("Missing sessionId cookie"))
         user <- users.authorize(sessionId)

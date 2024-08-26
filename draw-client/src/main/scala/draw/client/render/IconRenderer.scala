@@ -6,6 +6,7 @@ import zio.lazagna.dom.Element.svgtags._
 import zio.lazagna.dom.Element.{textContent, _}
 import zio.lazagna.dom.MultiUpdate
 import zio.lazagna.dom.svg.SVGHelper
+import draw.data.drawevent.{BrightnessStyle}
 
 import draw.data.{IconState, ObjectState}
 
@@ -15,6 +16,14 @@ trait IconRenderer extends ObjectRenderer[IconState] {
 }
 
 object IconRenderer {
+  def toFilter(brightness: BrightnessStyle, hue: Int): String = {
+    brightness match {
+      case BrightnessStyle.dark => s"url(#dark_${hue})"
+      case BrightnessStyle.bright => s"url(#bright_${hue})"
+      case _ => ""
+    }
+  }
+
   def make = for {
     rendered <- ZIO.service[RenderState]
     helper <- ZIO.service[SVGHelper]
@@ -36,7 +45,8 @@ object IconRenderer {
             width := mediumSize,
             height := mediumSize,
             x := -mediumSize / 2,
-            y := -mediumSize / 2
+            y := -mediumSize / 2,
+            state { s => filter.set(toFilter(s.body.brightnessStyle, s.body.hue)) }
           ),
         ),
         text(

@@ -10,6 +10,7 @@ import draw.data.drawevent.ObjectLabelled
 import zio.lazagna.geom.Bounds
 import zio.lazagna.geom.Rectangle
 import draw.data.drawevent.LinkEdited
+import draw.data.drawevent.BrightnessStyle
 import draw.data.fromProtobuf
 
 sealed trait ObjectStateBody {
@@ -52,7 +53,7 @@ case class ScribbleState(position: Point, points: Seq[Point]) extends ObjectStat
   }
 }
 
-case class IconState(position: Point, symbol: SymbolRef, label: String, bounds: Option[Bounds] = None, labelBounds: Option[Rectangle] = None) extends ObjectStateBody with Moveable {
+case class IconState(position: Point, symbol: SymbolRef, label: String, brightnessStyle: BrightnessStyle, hue: Int, bounds: Option[Bounds] = None, labelBounds: Option[Rectangle] = None) extends ObjectStateBody with Moveable {
   override def update(event: DrawEventBody) = event match {
     case ObjectMoved(_, Some(newPosition), _) =>
       copy(position = newPosition)

@@ -27,7 +27,7 @@ val commonSettings = Seq(
     "dev.zio" %%% "zio-test"          % zioVersion % Test,
     "dev.zio" %%% "zio-test-sbt"      % zioVersion % Test,
     "dev.zio" %%% "zio-test-magnolia" % zioVersion % Test,
-    "io.github.jypma" %%% "lazagna-core" % "0.9.1"
+    "io.github.jypma" %%% "lazagna-core" % "0.10.1"
   ))
 
 lazy val data = crossProject(JSPlatform, JVMPlatform).in(file("draw-data"))

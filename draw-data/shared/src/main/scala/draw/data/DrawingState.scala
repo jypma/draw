@@ -15,6 +15,7 @@ import draw.data.drawevent.DrawingCreated
 import draw.data.drawevent.LinkCreated
 import draw.data.drawevent.ObjectsLayedOut
 import draw.data.drawevent.LinkEdited
+import draw.data.drawevent.BrightnessStyle
 import java.time.Instant
 import draw.data.drawcommand.CreateLink
 import draw.data.drawcommand.LayoutObjects
@@ -82,10 +83,11 @@ case class DrawingState(
     event.body match {
       case ScribbleStarted(id, points, _) =>
         create(id, ScribbleState(Point(0,0), points.map(fromProtobuf)))
-      case IconCreated(id, optPos, category, name, width, height, _) =>
+      case IconCreated(id, optPos, category, name, width, height, brightnessStyle, hue, _) =>
         create(id, IconState(
           optPos.map(fromProtobuf).getOrElse(Point(0,0)),
           category.zip(name).map((c,n) => SymbolRef(SymbolCategory(c), n)).getOrElse(SymbolRef.person), "",
+          brightnessStyle.getOrElse(BrightnessStyle.black), hue.getOrElse(0)
         ).withBounds(width, height))
       case LinkCreated(id, src, dest, preferredDistance, preferredAngle, _) =>
         create(id, LinkState(src, dest, preferredDistance, preferredAngle,
@@ -133,8 +135,8 @@ case class DrawingState(
       case MoveObject(id, Some(position), _) =>
         // TODO: Verify scribble OR icon exists
         emit(ObjectMoved(id, Some(position)))
-      case CreateIcon(id, position, category, name, width, height, _) =>
-        emit(IconCreated(id, Some(position), Some(category), Some(name), Some(width), Some(height)))
+      case CreateIcon(id, position, category, name, width, height, style, hue, _) =>
+        emit(IconCreated(id, Some(position), Some(category), Some(name), Some(width), Some(height), style, hue))
       case LabelObject(id, label, width, height, yOffset, _) =>
         // TODO: verify icon exists
         emit(ObjectLabelled(id, label, Some(width), Some(height), Some(yOffset)))

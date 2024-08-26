@@ -1,5 +1,6 @@
 syntax = "proto2";
 import "point.proto";
+import "drawevent.proto";
 
 package draw.data;
 
@@ -47,7 +48,8 @@ message CreateIcon {
     required string name = 4;
     required double width = 5;
     required double height = 6;
-
+    optional BrightnessStyle brightnessStyle = 7;
+    optional int32 hue = 8;
 }
 
 message LabelObject {
